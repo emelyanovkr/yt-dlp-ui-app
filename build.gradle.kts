@@ -17,16 +17,17 @@ repositories {
 
 dependencies {
     implementation(compose.desktop.currentOs)
+    implementation("org.jetbrains.compose.components:components-resources-desktop:1.7.3")
 }
 
 compose.desktop {
     application {
         mainClass = "org.emlnv.app.MainKt"
-
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "yt-dlp-ui-app"
             packageVersion = "1.0.0"
+            windows.iconFile.set(project.file("src/main/resources/drawable/app_icon.png"))
         }
     }
 }

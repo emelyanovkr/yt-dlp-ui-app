@@ -5,21 +5,27 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import org.emlnv.settings.AppSettings
 import org.emlnv.utils.buildYtDlpCommand
 import org.emlnv.utils.isYtDlpInstalled
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import javax.swing.JFileChooser
 
+@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun AppContent() {
+    var videoUrl by remember { mutableStateOf("") }
+    var useProxy by remember { mutableStateOf(AppSettings.useProxy) }
+    var proxyIp by remember { mutableStateOf(AppSettings.proxyIp) }
+    var proxyPort by remember { mutableStateOf(AppSettings.proxyPort) }
+    var downloadFolder by remember { mutableStateOf(AppSettings.downloadFolder) }
+    var extraArgs by remember { mutableStateOf(AppSettings.extraArgs) }
+    var attemptedDownload by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("Checking for yt-dlp...") }
     var showInstallInfo by remember { mutableStateOf(false) }
-    var videoUrl by remember { mutableStateOf("") }
-    var useProxy by remember { mutableStateOf(false) }
-    var proxyIp by remember { mutableStateOf("127.0.0.1") }
-    var proxyPort by remember { mutableStateOf("8080") }
-    var downloadFolder by remember { mutableStateOf("") }
-    var extraArgs by remember { mutableStateOf("") }
-    var attemptedDownload by remember { mutableStateOf(false) }
+    var rememberFolder by remember { mutableStateOf(AppSettings.rememberFolder) }
 
     LaunchedEffect(Unit) {
         if (isYtDlpInstalled()) {
@@ -30,6 +36,18 @@ fun AppContent() {
             showInstallInfo = true
         }
     }
+
+    LaunchedEffect(useProxy) { AppSettings.useProxy = useProxy }
+    LaunchedEffect(proxyIp) { AppSettings.proxyIp = proxyIp }
+    LaunchedEffect(proxyPort) { AppSettings.proxyPort = proxyPort }
+    LaunchedEffect(rememberFolder, downloadFolder) {
+        if (rememberFolder) {
+            AppSettings.downloadFolder = downloadFolder
+        } else {
+            AppSettings.downloadFolder = ""
+        }
+    }
+    LaunchedEffect(extraArgs) { AppSettings.extraArgs = extraArgs }
 
     Box(modifier = Modifier.fillMaxSize()) {
         TopAppBar(title = { Text("Status: $statusMessage") })
@@ -58,8 +76,43 @@ fun AppContent() {
                 value = downloadFolder,
                 onValueChange = { downloadFolder = it },
                 label = { Text("Download Folder") },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        // Открываем диалог выбора папки с помощью JFileChooser
+                        val chooser = JFileChooser().apply {
+                            fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+                        }
+                        val result = chooser.showOpenDialog(null)
+                        if (result == JFileChooser.APPROVE_OPTION) {
+                            downloadFolder = chooser.selectedFile.absolutePath
+                        }
+                    }) {
+                        Icon(
+                            painter = painterResource("drawable/folder.png"),
+                            contentDescription = "Choose folder",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Row(
+                modifier = Modifier.padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = rememberFolder,
+                    onCheckedChange = { newValue ->
+                        rememberFolder = newValue
+                        AppSettings.rememberFolder = newValue
+                        if (!newValue) {
+                            AppSettings.downloadFolder = ""
+                        }
+                    }
+                )
+                Text("Remember folder")
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -91,7 +144,8 @@ fun AppContent() {
                 )
             }
 
-            val downloadEnabled = videoUrl.isNotBlank() && (!useProxy || (proxyIp.isNotBlank() && proxyPort.isNotBlank()))
+            val downloadEnabled =
+                videoUrl.isNotBlank() && (!useProxy || (proxyIp.isNotBlank() && proxyPort.isNotBlank()))
             Button(
                 onClick = {
                     if (!downloadEnabled) {
