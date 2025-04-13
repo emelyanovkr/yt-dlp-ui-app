@@ -27,7 +27,11 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "yt-dlp-ui-app"
             packageVersion = "1.0.0"
-            windows.iconFile.set(project.file("src/main/resources/drawable/app_icon.png"))
+            windows {
+                iconFile.set(project.file("src/main/resources/drawable/app_icon.png"))
+                vendor = "starscream 13"
+            }
+
         }
     }
 }
